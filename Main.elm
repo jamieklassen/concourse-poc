@@ -1,17 +1,14 @@
 module Main exposing (..)
 
 import Html
-import Http
-import Json.Decode as JD
-import Json.Decode.Pipeline as JDP
+import Models
+import Commands
+import Msgs
 import RemoteData as RD
+import Views
 
 
-type alias Model =
-    { pipelines : RD.WebData (List Pipeline) }
-
-
-main : Program Never Model Msg
+main : Program Never Models.Model Msgs.Msg
 main =
     Html.program
         { init = init
@@ -21,78 +18,27 @@ main =
         }
 
 
-init : ( Model, Cmd Msg )
+init : ( Models.Model, Cmd Msgs.Msg )
 init =
-    ( initialModel, fetchPipelines )
-
-
-initialModel : Model
-initialModel =
-    { pipelines = RD.Loading }
+    ( Models.initialModel, Commands.fetchPipelines )
 
 
 type Msg
-    = OnFetchPipelines (RD.WebData (List Pipeline))
+    = OnFetchPipelines (RD.WebData (List Models.Pipeline))
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msgs.Msg -> Models.Model -> ( Models.Model, Cmd Msgs.Msg )
 update msg model =
     case msg of
-        OnFetchPipelines resp ->
+        Msgs.OnFetchPipelines resp ->
             ( { model | pipelines = resp }, Cmd.none )
 
 
-view : Model -> Html.Html Msg
+view : Models.Model -> Html.Html Msgs.Msg
 view model =
-    Html.div [] [ maybeList model.pipelines ]
+    Html.div [] [ Views.maybeList model.pipelines ]
 
 
-maybeList : RD.WebData (List Pipeline) -> Html.Html Msg
-maybeList response =
-    case response of
-        RD.NotAsked ->
-            Html.text ""
-
-        RD.Loading ->
-            Html.text "Loading..."
-
-        RD.Success pipelines ->
-            list pipelines
-
-        RD.Failure error ->
-            Html.text (toString error)
-
-
-list : List Pipeline -> Html.Html Msg
-list pipelines =
-    Html.ul [] (List.map (\p -> Html.li [] [ Html.text p.name ]) pipelines)
-
-
-subscriptions : Model -> Sub Msg
+subscriptions : Models.Model -> Sub Msgs.Msg
 subscriptions model =
     Sub.none
-
-
-fetchPipelines : Cmd Msg
-fetchPipelines =
-    Http.get fetchPipelinesUrl (JD.list pipelineDecoder)
-        |> RD.sendRequest
-        |> Cmd.map OnFetchPipelines
-
-
-fetchPipelinesUrl : String
-fetchPipelinesUrl =
-    "http://localhost:8080/api/v1/pipelines"
-
-
-pipelineDecoder : JD.Decoder Pipeline
-pipelineDecoder =
-    JDP.decode Pipeline
-        |> JDP.required "name" JD.string
-        |> JDP.required "team_name" JD.string
-
-
-type alias Pipeline =
-    { name : String
-    , teamName : String
-    }
