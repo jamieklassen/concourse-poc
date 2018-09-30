@@ -1,8 +1,8 @@
-module Main exposing (..)
+module Main exposing (Msg(..), init, main, subscriptions, update, view)
 
+import Commands
 import Html
 import Models
-import Commands
 import Msgs
 import RemoteData as RD
 import Views
@@ -20,7 +20,7 @@ main =
 
 init : ( Models.Model, Cmd Msgs.Msg )
 init =
-    ( Models.initialModel, Commands.fetchPipelines )
+    ( Models.initialModel, Commands.fetchData )
 
 
 type Msg
@@ -30,13 +30,13 @@ type Msg
 update : Msgs.Msg -> Models.Model -> ( Models.Model, Cmd Msgs.Msg )
 update msg model =
     case msg of
-        Msgs.OnFetchPipelines resp ->
-            ( { model | pipelines = resp }, Cmd.none )
+        Msgs.OnFetchData resp ->
+            ( { model | teams = Just resp }, Cmd.none )
 
 
 view : Models.Model -> Html.Html Msgs.Msg
 view model =
-    Html.div [] [ Views.maybeList model.pipelines ]
+    Html.div [] [ Views.maybeList model.teams ]
 
 
 subscriptions : Models.Model -> Sub Msgs.Msg

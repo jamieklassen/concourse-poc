@@ -1,27 +1,48 @@
-module Views exposing (..)
+module Views exposing (list, maybeList)
 
 import Html
+import Http
 import Models
 import Msgs
-import RemoteData as RD
 
 
-maybeList : RD.WebData (List Models.Pipeline) -> Html.Html Msgs.Msg
+maybeList : Maybe (Result Http.Error (List Models.Team)) -> Html.Html msg
 maybeList response =
     case response of
-        RD.NotAsked ->
+        Nothing ->
             Html.text ""
 
-        RD.Loading ->
-            Html.text "Loading..."
+        Just (Ok teams) ->
+            list teams
 
-        RD.Success pipelines ->
-            list pipelines
-
-        RD.Failure error ->
+        Just (Err error) ->
             Html.text (toString error)
 
 
-list : List Models.Pipeline -> Html.Html Msgs.Msg
-list pipelines =
-    Html.ul [] (List.map (\p -> Html.li [] [ Html.text p.name ]) pipelines)
+list : List Models.Team -> Html.Html msg
+list teams =
+    Html.ul [] (List.map team teams)
+
+
+team : Models.Team -> Html.Html msg
+team t =
+    let
+        body =
+            case t.pipelines of
+                [] ->
+                    [ Html.text "no pipelines" ]
+
+                ps ->
+                    List.map pipeline ps
+    in
+    Html.li [] [ Html.text t.name, Html.ul [] body ]
+
+
+pipeline : Models.Pipeline -> Html.Html msg
+pipeline p =
+    Html.li [] [ Html.text p.name, Html.ul [] (List.map job p.jobs) ]
+
+
+job : Models.Job -> Html.Html msg
+job j =
+    Html.li [] [ Html.text (j.name ++ Models.statusString j) ]

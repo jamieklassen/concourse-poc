@@ -1,8 +1,8 @@
-module Msgs exposing (..)
+module Msgs exposing (Msg(..))
 
-import RemoteData as RD
+import Http
 import Models
 
 
 type Msg
-    = OnFetchPipelines (RD.WebData (List Models.Pipeline))
+    = OnFetchData (Result Http.Error (List Models.Team))
