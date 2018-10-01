@@ -85,15 +85,21 @@ pipeline model po =
 
         Just p ->
             Html.li []
-                ([ Html.text p.name
-                 , resourceErrorText p
-                 , pipelineStatusText model p
-                 ]
+                ((if model.highDensity then
+                    []
+
+                  else
+                    [ pipelinePausedToggle model po ]
+                 )
+                    ++ [ Html.text p.name
+                       , resourceErrorText p
+                       , pipelineStatusText model p
+                       ]
                     ++ (if model.highDensity then
                             []
 
                         else
-                            [ pipelinePausedToggle model po, Html.ul [] (List.map job p.jobs) ]
+                            [ Html.ul [] (List.map job p.jobs) ]
                        )
                 )
 
@@ -175,15 +181,7 @@ pipelinePausedToggle model po =
             Html.text ""
 
         Just pipeline ->
-            Html.label []
-                [ Html.text " paused"
-                , Html.input
-                    [ HSA.type_ "checkbox"
-                    , HSA.checked pipeline.paused
-                    , HSE.onClick <| Msgs.TogglePipelinePaused po
-                    ]
-                    []
-                ]
+            Html.button [ HSE.onClick <| Msgs.TogglePipelinePaused po ] [ Html.text "toggle paused" ]
 
 
 job : Models.Job -> Html Msgs.Msg

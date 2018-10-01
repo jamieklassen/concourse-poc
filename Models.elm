@@ -14,6 +14,7 @@ import Time exposing (Time)
 type alias Model =
     { data : Maybe (Result Http.Error Data)
     , highDensity : Bool
+    , loggedIn : Bool
     }
 
 
@@ -144,6 +145,7 @@ initialModel : Model
 initialModel =
     { data = Nothing
     , highDensity = True
+    , loggedIn = False
     }
 
 
