@@ -1,5 +1,6 @@
-module Views exposing (job, list, maybeList, pipeline, resource, statusText, team, toText, view)
+module Views exposing (..)
 
+import Bindata
 import Css
 import Date
 import Date.Extra.Duration as DED
@@ -14,12 +15,180 @@ import Msgs
 import Time exposing (Time)
 
 
+stickyHeaderConfig : StickyHeaderConfig
+stickyHeaderConfig =
+    { sectionClass = "section"
+    , sectionHeaderClass = "section-header"
+    , sectionBodyClass = "section-body"
+    , pageHeaderClass = "page-header"
+    , pageBodyClass = "page-body"
+    }
+
+
+type alias StickyHeaderConfig =
+    { sectionClass : String
+    , sectionHeaderClass : String
+    , sectionBodyClass : String
+    , pageHeaderClass : String
+    , pageBodyClass : String
+    }
+
+
 view : Models.Model -> Html Msgs.Msg
 view model =
-    Html.div []
-        [ hdToggle model
-        , maybeList model
+    Html.div
+        [ HSA.css
+            [ Css.fontFamilies [ "Inconsolata", .value Css.monospace ]
+            , Css.fontSize (Css.px 12)
+            , Css.letterSpacing (Css.em 0.0425)
+            ]
         ]
+        [ topBar model
+        , body model
+        ]
+
+
+topBar : Models.Model -> Html Msgs.Msg
+topBar model =
+    case model.screenSize of
+        Models.Desktop ->
+            Html.div [ HSA.class stickyHeaderConfig.pageHeaderClass, HSA.css (topBarStyles ++ navStyles) ]
+                [ concourseLogo model
+                , searchBar Models.Desktop
+                , userMenu model
+                ]
+
+        Models.Mobile ->
+            Html.div [ HSA.class stickyHeaderConfig.pageHeaderClass, HSA.css topBarStyles ]
+                [ Html.div [ HSA.css navStyles ] [ concourseLogo model, userMenu model ]
+                , searchBar Models.Mobile
+                ]
+
+
+topBarStyles : List Css.Style
+topBarStyles =
+    [ Css.backgroundColor (Css.hex "1e1d1d")
+    , Css.color (Css.hex "fff")
+    , Css.position Css.fixed
+    , Css.top Css.zero
+    , Css.width (Css.pct 100)
+    , Css.zIndex (Css.int 2)
+    ]
+
+
+navStyles : List Css.Style
+navStyles =
+    [ Css.displayFlex
+    , Css.justifyContent Css.spaceBetween
+    ]
+
+
+concourseLogo : Models.Model -> Html Msgs.Msg
+concourseLogo model =
+    Html.div
+        [ HSA.css
+            [ Css.backgroundImage Bindata.concourseLogo
+            , Css.backgroundPosition Css.center
+            , Css.backgroundRepeat Css.noRepeat
+            , Css.backgroundSize2 (Css.px 42) (Css.px 42)
+            , Css.height (Css.px 54)
+            , Css.width (Css.px 54)
+            ]
+        ]
+        []
+
+
+searchBar : Models.ScreenSize -> Html Msgs.Msg
+searchBar screenSize =
+    Html.div
+        [ HSA.css
+            ([ Css.position Css.relative
+             , Css.alignSelf Css.center
+             ]
+                ++ (case screenSize of
+                        Models.Mobile ->
+                            [ Css.margin (Css.px 16) ]
+
+                        Models.Desktop ->
+                            []
+                   )
+            )
+        ]
+        [ Html.input
+            [ HSA.type_ "text"
+            , HSA.placeholder "search"
+            , HSA.css
+                [ Css.border3 (Css.px 1) Css.solid (Css.hex "504b4b")
+                , Css.backgroundImage Bindata.spyglassIcon
+                , Css.backgroundPosition2 (Css.px 12) (Css.px 8)
+                , Css.backgroundRepeat Css.noRepeat
+                , Css.backgroundColor Css.transparent
+                , Css.fontSize (Css.em 1.15)
+                , Css.fontFamilies [ "Inconsolata", .value Css.monospace ]
+                , Css.color (Css.hex "fff")
+                , Css.padding2 Css.zero (Css.px 42)
+                , Css.height (Css.px 30)
+                , (case screenSize of
+                    Models.Desktop ->
+                        Css.width (Css.px 306)
+
+                    Models.Mobile ->
+                        Css.width (Css.pct 100)
+                  )
+                ]
+            ]
+            []
+        , Html.span
+            [ HSA.css
+                [ Css.backgroundImage Bindata.closeIcon
+                , Css.backgroundPosition2 (Css.px 10) (Css.px 10)
+                , Css.backgroundRepeat Css.noRepeat
+                , Css.backgroundColor Css.transparent
+                , Css.opacity (Css.num 0.2)
+                , Css.border Css.zero
+                , Css.padding (Css.px 17)
+                , Css.position Css.absolute
+                , Css.right Css.zero
+                , Css.flexGrow (Css.num 1)
+                , Css.cursor Css.pointer
+                ]
+            ]
+            []
+        ]
+
+
+userMenu : Models.Model -> Html Msgs.Msg
+userMenu model =
+    Html.div
+        [ HSA.css
+            ([ Css.padding2 Css.zero (Css.px 30)
+             , Css.overflow Css.hidden
+             , Css.textOverflow Css.ellipsis
+             , Css.textAlign Css.center
+             , Css.lineHeight (Css.px 54)
+             ]
+                ++ (case model.screenSize of
+                        Models.Desktop ->
+                            [ Css.borderLeft3 (Css.px 1) Css.solid (Css.hex "3d3c3c") ]
+
+                        Models.Mobile ->
+                            []
+                   )
+            )
+        ]
+        [ Html.text model.user ]
+
+
+body : Models.Model -> Html Msgs.Msg
+body model =
+    Html.div
+        [ HSA.class stickyHeaderConfig.pageBodyClass
+        , HSA.css
+            [ Css.backgroundColor (Css.hex "3d3c3c")
+            , Css.color (Css.hex "e6e7e8")
+            ]
+        ]
+        [ maybeList model ]
 
 
 hdToggle : Models.Model -> Html Msgs.Msg
@@ -74,7 +243,7 @@ team model to =
                         ps ->
                             List.map (pipeline model) ps
             in
-            Html.li [] [ Html.text t.name, Html.ul [] body ]
+                Html.li [] [ Html.text t.name, Html.ul [] body ]
 
 
 pipeline : Models.Model -> MO.Optional Models.Model Models.Pipeline -> Html Msgs.Msg
@@ -87,7 +256,6 @@ pipeline model po =
             Html.li []
                 ((if model.highDensity then
                     []
-
                   else
                     [ pipelinePausedToggle model po ]
                  )
@@ -97,7 +265,6 @@ pipeline model po =
                        ]
                     ++ (if model.highDensity then
                             []
-
                         else
                             [ Html.ul [] (List.map job p.jobs) ]
                        )
@@ -110,7 +277,6 @@ resourceErrorText pipeline =
         Html.span
             [ HSA.css [ palette.orange ] ]
             [ Html.text " [resource error]" ]
-
     else
         Html.text ""
 
@@ -161,7 +327,6 @@ statusAgeString : Models.Model -> Maybe Time -> String
 statusAgeString model since =
     if model.highDensity then
         ""
-
     else
         Maybe.map2 (\n s -> DED.diff (Date.fromTime n) (Date.fromTime s) |> durationToString |> (++) " for ")
             (.getOption Models.now model)

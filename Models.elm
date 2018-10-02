@@ -1,4 +1,4 @@
-module Models exposing (Build, BuildStatus(..), Data, Job, Model, Pipeline, PipelineStatus(..), Resource, Team, allNames, createPipelines, createTeams, decodeString, initialModel, jobStatus, lensWithOptional, now, optionalWithLens, pipelines, status, statusChangeTime, teams, transitionTime)
+module Models exposing (..)
 
 import Http
 import Json.Decode as JD
@@ -9,12 +9,20 @@ import Monocle.Lens as ML
 import Monocle.Optional as MO
 import Set
 import Time exposing (Time)
+import Window
+
+
+type ScreenSize
+    = Desktop
+    | Mobile
 
 
 type alias Model =
     { data : Maybe (Result Http.Error Data)
     , highDensity : Bool
-    , loggedIn : Bool
+    , query : String
+    , user : String
+    , screenSize : ScreenSize
     }
 
 
@@ -43,7 +51,7 @@ lensWithOptional inner outer =
         set c =
             ML.modify outer (inner.set c)
     in
-    MO.Optional getOption set
+        MO.Optional getOption set
 
 
 optionalWithLens : ML.Lens b c -> MO.Optional a b -> MO.Optional a c
@@ -55,7 +63,7 @@ optionalWithLens inner outer =
         set c =
             MO.modify outer (inner.set c)
     in
-    MO.Optional getOption set
+        MO.Optional getOption set
 
 
 teams : Model -> List (MO.Optional Model Team)
@@ -145,7 +153,9 @@ initialModel : Model
 initialModel =
     { data = Nothing
     , highDensity = True
-    , loggedIn = False
+    , query = ""
+    , user = "pivotal-jamie-klassen"
+    , screenSize = Desktop
     }
 
 
@@ -234,16 +244,12 @@ status : Pipeline -> PipelineStatus
 status pipeline =
     if pipeline.paused then
         Pausing
-
     else if List.all ((==) Succeeded) <| List.filterMap jobStatus pipeline.jobs then
         Succeeding (statusChangeTime pipeline)
-
     else if List.any ((==) Errored) <| List.filterMap jobStatus pipeline.jobs then
         Erroring (statusChangeTime pipeline)
-
     else if List.any ((==) Failed) <| List.filterMap jobStatus pipeline.jobs then
         Failing (statusChangeTime pipeline)
-
     else
         Pending
 
@@ -256,16 +262,24 @@ statusChangeTime pipeline =
                 |> List.filter (transitionTime >> ME.isJust)
                 |> List.sortBy (transitionTime >> Maybe.withDefault 0)
     in
-    transitions
-        |> List.Extra.dropWhile (jobStatus >> (==) (Just Succeeded))
-        |> List.head
-        |> Maybe.map Just
-        |> Maybe.withDefault (List.Extra.last transitions)
-        |> Maybe.map transitionTime
-        |> ME.join
+        transitions
+            |> List.Extra.dropWhile (jobStatus >> (==) (Just Succeeded))
+            |> List.head
+            |> Maybe.map Just
+            |> Maybe.withDefault (List.Extra.last transitions)
+            |> Maybe.map transitionTime
+            |> ME.join
 
 
 transitionTime : Job -> Maybe Time
 transitionTime =
     .transitionBuild
         >> Maybe.map .startTime
+
+
+getScreenSize : Window.Size -> ScreenSize
+getScreenSize size =
+    if size.width <= 812 then
+        Mobile
+    else
+        Desktop

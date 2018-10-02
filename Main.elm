@@ -1,21 +1,24 @@
-module Main exposing (init, main, subscriptions, update)
+port module Main exposing (init, main, subscriptions, update)
 
 import Commands
-import Html
-import Html.Styled as HS
+import Html.Styled as Html
 import Models
 import Monocle.Optional as MO
 import Msgs
 import RemoteData as RD
 import Time
 import Views
+import Window
+
+
+port stickyHeaders : Views.StickyHeaderConfig -> Cmd Msgs.Msg
 
 
 main : Program Never Models.Model Msgs.Msg
 main =
     Html.program
         { init = init
-        , view = Views.view >> HS.toUnstyled
+        , view = Views.view
         , update = update
         , subscriptions = subscriptions
         }
@@ -23,7 +26,12 @@ main =
 
 init : ( Models.Model, Cmd Msgs.Msg )
 init =
-    ( Models.initialModel, Commands.fetchData )
+    ( Models.initialModel
+    , Cmd.batch
+        [ Commands.fetchData
+        , Task.perform Msgs.SetScreenSize Window.size
+        ]
+    )
 
 
 update : Msgs.Msg -> Models.Model -> ( Models.Model, Cmd Msgs.Msg )
@@ -41,7 +49,13 @@ update msg model =
         Msgs.TogglePipelinePaused po ->
             ( MO.modify po (\p -> { p | paused = not p.paused }) model, Cmd.none )
 
+        Msgs.SetScreenSize size ->
+            ( { model | screenSize = Models.getScreenSize size }, stickyHeaders Views.stickyHeaderConfig )
+
 
 subscriptions : Models.Model -> Sub Msgs.Msg
 subscriptions model =
-    Time.every Time.second Msgs.Tick
+    Sub.batch
+        [ Time.every Time.second Msgs.Tick
+        , Window.resizes Msgs.SetScreenSize
+        ]

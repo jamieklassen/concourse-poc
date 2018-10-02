@@ -4,6 +4,7 @@ import Http
 import Models
 import Monocle.Optional as MO
 import Time exposing (Time)
+import Window
 
 
 type Msg
@@ -11,3 +12,4 @@ type Msg
     | ToggleHighDensity
     | TogglePipelinePaused (MO.Optional Models.Model Models.Pipeline)
     | Tick Time
+    | SetScreenSize Window.Size
